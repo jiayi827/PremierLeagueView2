@@ -93,7 +93,7 @@ d3.csv("StatsByClub.csv", function(data) {
     d.TransferSpending = +d.TransferSpending;
   });
 
-  // default graph
+  // default Year 2014 and Catagory Goals
   dataFilter = data.filter(function(d) {return d.Year == 2014;});
   dataFilter.sort((a, b) => d3.descending(a.Goals, b.Goals));
   drawVis(dataFilter);
