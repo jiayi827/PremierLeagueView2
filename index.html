@@ -2,7 +2,19 @@
 <meta charset="utf-8">
 
 <style>
-
+h2 {
+  margin-top: 0;
+  color: #33333;
+  font-family: "Arial";
+}
+h3 {
+  color: #4B0082;
+  font-family: "Arial";
+}
+label {
+  color: #4B0082;
+  font-family: "Arial";
+}
 .bar {
   fill: steelblue;
 }
@@ -59,6 +71,10 @@ div.tooltip {
     </label>
     <input type="range" min="2012" max ="2016" id="slider">
   </div>
+  <br>
+  <form>
+    <label><input type="checkbox" id="check" onchange="sortData(this);" value="sort">&nbsp;Sort Data&nbsp;&nbsp;</label>
+  </form>
   <div id="visualization">
     <svg width="800" height="400"></svg>
   </div>
@@ -93,9 +109,9 @@ d3.csv("StatsByClub.csv", function(data) {
     d.TransferSpending = +d.TransferSpending;
   });
 
-  // default Year 2014 and Catagory Goals
+  // default graph
   dataFilter = data.filter(function(d) {return d.Year == 2014;});
-  dataFilter.sort((a, b) => d3.descending(a.Goals, b.Goals));
+//  dataFilter.sort((a, b) => d3.descending(a.Goals, b.Goals));
   drawVis(dataFilter);
 
   d3.select("#slider").on("input", function() {
@@ -108,6 +124,18 @@ d3.csv("StatsByClub.csv", function(data) {
 
 });
 
+function sortData(cb) {
+  if (cb.checked) {
+    // sort data
+    var checkData = dataFilter;
+    checkData.sort((a, b) => d3.descending(a[myCategory], b[myCategory]));
+    drawVis(checkData);
+  } else {
+    // do not sort data
+    drawVis(dataFilter);
+  }
+}
+
 function filterCategory(category) {
   if (category == myCategory) {
     // do nothing
@@ -118,11 +146,15 @@ function filterCategory(category) {
   }
 }
 
+
 function drawVis(data) {
 
-  data.sort((a, b) => d3.descending(a[myCategory], b[myCategory]));
   svg.selectAll(".bar").remove();
   svg.selectAll("g").remove();
+
+  if (document.getElementById("check").checked) {
+  data.sort((a, b) => d3.descending(a[myCategory], b[myCategory]));
+  }
 
   x.domain(data.map(function(d) { return d.Team; }));
   y.domain([0, d3.max(data, function(d) { return d[myCategory]; })]);
