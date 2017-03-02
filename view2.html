@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<style>
+
+.bar {
+  fill: steelblue;
+}
+
+.bar:hover {
+  fill: brown;
+}
+
+.axis--x path {
+  display: none;
+}
+div.tooltip {
+  position: absolute;
+  background: #eee;
+  box-shadow: 0 0 5px #999999;
+  color: #333;
+  padding: 5px;
+  font-family: Arial;
+  pointer-events: none;
+  font-size: 12px;
+  border-radius: 3px;
+}
+
+</style>
+
+<body>
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.1/themes/smoothness/jquery-ui.css">
+  <script src="http://code.jquery.com/jquery-1.10.2.js"></script>
+  <script src="http://code.jquery.com/ui/1.11.1/jquery-ui.js"></script>
+
+  <h2>Premier League Stats</h2>
+    <div id="filters">
+      <select id="myselectform">
+        <option value="Goals">Goals</option>
+        <option value="Wins">Wins</option>
+        <option value="Losses">Losses</option>
+        <option value="Points">Points</option>
+        <option value="CleanSheets">Clean Sheets</option>
+        <option value="TransferSpending">Transfer Spending (M.€)</option>
+      </select>
+    </div>
+
+    <script>
+      document.getElementById("myselectform").onchange =
+        function() {
+          filterCategory(this.value);
+        }
+    </script>
+  <h3>Slide to Pick a Year</h3>
+  <div>
+    <label for="slider" 
+         style="display: inline-block; text-align: right">
+         Year: <span id="slider-value">2014</span>
+    </label>
+    <input type="range" min="2012" max ="2016" id="slider">
+  </div>
+  <div id="visualization">
+    <svg width="800" height="400"></svg>
+  </div>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+var svg = d3.select("svg"),
+    margin = {top: 20, right: 20, bottom: 30, left: 40},
+    width = +svg.attr("width") - margin.left - margin.right,
+    height = +svg.attr("height") - margin.top - margin.bottom;
+
+var x = d3.scaleBand().rangeRound([0, width]).padding(0.1);
+var y = d3.scaleLinear().rangeRound([height, 0]);
+var myCategory = "Goals";
+var dataFilter;
+
+
+svg = svg.append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+d3.csv("StatsByClub.csv", function(data) {
+  data.forEach(function(d) {
+    d.Goals = +d.Goals;
+    d.Year = +d.Year;
+    d.RedYellow = +d.RedYellow;
+    d.Wins = +d.Wins;
+    d.Draws = +d.Draws;
+    d.Losses = +d.Losses;
+    d.CleanSheets = +d.CleanSheets;
+    d.Points = +d.Points;
+    d.TransferSpending = +d.TransferSpending;
+  });
+
+  // default graph
+  dataFilter = data.filter(function(d) {return d.Year == 2014;});
+  dataFilter.sort((a, b) => d3.descending(a.Goals, b.Goals));
+  drawVis(dataFilter);
+
+  d3.select("#slider").on("input", function() {
+    console.log("User input: " + this.value);
+    d3.select("#slider-value").text(this.value);
+    var yearSelected = +this.value;
+    dataFilter = data.filter(function(d) {return d.Year == yearSelected;});
+    drawVis(dataFilter);
+  });
+
+});
+
+function filterCategory(category) {
+  if (category == myCategory) {
+    // do nothing
+  } else {
+    console.log("Category changed to: " + category);
+    myCategory = category;
+    drawVis(dataFilter);
+  }
+}
+
+function drawVis(data) {
+
+  data.sort((a, b) => d3.descending(a[myCategory], b[myCategory]));
+  svg.selectAll(".bar").remove();
+  svg.selectAll("g").remove();
+
+  x.domain(data.map(function(d) { return d.Team; }));
+  y.domain([0, d3.max(data, function(d) { return d[myCategory]; })]);
+
+  var tooltip = d3.select("body").append("div")
+      .attr("class", "tooltip")
+      .style("opacity", 0);
+
+  svg.append("g")
+      .attr("class", "axis axis--x")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x));
+
+  svg.append("g")
+      .attr("class", "axis axis--y")
+      .call(d3.axisLeft(y))
+    .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", "0.71em")
+      .attr("text-anchor", "end")
+      .text("Goals");
+
+  svg.selectAll(".bar")
+     .data(data)
+     .enter().append("rect")
+        .attr("class", "bar")
+        .attr("x", function(d) { return x(d.Team); })
+        .attr("y", function(d) { return y(d[myCategory]);})
+        .attr("width", x.bandwidth())
+        .attr("height", function(d) { return height - y(d[myCategory]);})
+        .on("mouseover", function(d) {
+            var text1 = d.Team + "&nbsp;&nbsp;&nbsp;"+"<hr>";
+            var text2 = myCategory + "&nbsp;&nbsp;&nbsp;" + d[myCategory]+"<br>";
+            var text3 = "Final Rank" + "&nbsp;&nbsp;&nbsp;" +d.Rank;
+          tooltip.transition()
+            .duration(200)
+            .style("opacity",.9);
+          tooltip.html(text1+text2+text3)
+            .style("left",(d3.event.pageX - 5) + "px")
+            .style("top",(d3.event.pageY - 50) + "px");
+        })
+        .on("mouseout", function(d) {
+          tooltip.transition()
+                .duration(500)
+                .style("opacity",0);
+        });
+
+}
+
+</script>
+</body>
+</html>
